@@ -13,25 +13,34 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 
 public class MainActivity extends Activity {
 
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 0;
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
-                PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    REQUEST_WRITE_EXTERNAL_STORAGE);
-        }
+    private void showAlertError(String s) {
+        new AlertDialog.Builder(this).setTitle("Error")
+                .setMessage(s)
+                .setPositiveButton(android.R.string.ok, null)
+                .setIcon(android.R.drawable.ic_dialog_alert).show();
+    }
 
+    private void init() {
         final Button button = findViewById(R.id.button);
         final EditText editText = findViewById(R.id.edittext);
+
+        File file = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOCUMENTS), "mydreamland/geometry/vertices.dat");
+        try {
+            editText.setText(new String(Files.readAllBytes(file.toPath())));
+        } catch (IOException e) {
+            showAlertError(e.getMessage());
+        }
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -39,13 +48,26 @@ public class MainActivity extends Activity {
                         Environment.DIRECTORY_DOCUMENTS), "mydreamland/geometry/vertices.dat");
                 try {
                     FileWriter fileWriter = new FileWriter(file, false);
+                    fileWriter.write(editText.getText().toString());
+                    fileWriter.close();
                 } catch (IOException e) {
-                    new AlertDialog.Builder(MainActivity.this).setTitle("Error")
-                            .setMessage(e.getMessage())
-                            .setPositiveButton(android.R.string.ok, null)
-                            .setIcon(android.R.drawable.ic_dialog_alert).show();
+                    showAlertError(e.getMessage());
                 }
             }
         });
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+                PackageManager.PERMISSION_GRANTED) {
+            init();
+        } else {
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    REQUEST_WRITE_EXTERNAL_STORAGE);
+        }
     }
 }
